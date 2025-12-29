@@ -19,4 +19,3 @@ pub use stream::CudaStream;
 
 pub use cudarc::driver::{LaunchConfig, PushKernelArg};
 pub use cudarc::nvrtc::{compile_ptx, Ptx};
-pub use wgpu::TextureUses;

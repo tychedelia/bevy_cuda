@@ -2,10 +2,9 @@ use bevy::prelude::*;
 use bevy::render::extract_resource::{ExtractResource, ExtractResourcePlugin};
 use bevy::render::render_asset::RenderAssets;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat, TextureUsages};
-use bevy::render::renderer::{RenderDevice, RenderQueue};
 use bevy::render::texture::GpuImage;
 use bevy::render::{Render, RenderApp, RenderStartup, RenderSystems};
-use bevy_cuda::{compile_ptx, CudaBuffer, CudaContext, CudaModule, CudaPlugin, LaunchConfig, PushKernelArg, TextureUses};
+use bevy_cuda::{compile_ptx, CudaBuffer, CudaContext, CudaModule, CudaPlugin, LaunchConfig, PushKernelArg};
 use std::sync::Arc;
 
 const ANIMATE_KERNEL: &str = r#"
@@ -87,7 +86,6 @@ fn setup(
         TextureFormat::Rgba8Unorm,
         default(),
     );
-    // we need COPY_SRC and COPY_DST so that we can roundtrip through cuda
     texture.texture_descriptor.usage |= TextureUsages::COPY_SRC | TextureUsages::COPY_DST;
 
     let texture_handle = images.add(texture);
@@ -164,16 +162,12 @@ fn cuda_animate_texture(
     cuda: Res<CudaContext>,
     resources: Option<Res<CudaResources>>,
     gpu_images: Res<RenderAssets<GpuImage>>,
-    render_device: Res<RenderDevice>,
-    render_queue: Res<RenderQueue>,
 ) {
     let Some(cuda_texture) = cuda_texture else { return };
     let Some(anim_time) = anim_time else { return };
     let Some(resources) = resources else { return };
     let Some(gpu_image) = gpu_images.get(&cuda_texture.0) else { return };
 
-    let device = render_device.wgpu_device();
-    let queue: &wgpu::Queue = &render_queue;
     let width = gpu_image.size.width;
     let height = gpu_image.size.height;
 
@@ -192,7 +186,7 @@ fn cuda_animate_texture(
         shared_mem_bytes: 0,
     };
 
-    let ptr = resources.buffer.ptr();
+    let ptr = resources.buffer.device_ptr();
     let w = width as i32;
     let h = height as i32;
     let t = anim_time.0;
@@ -213,15 +207,12 @@ fn cuda_animate_texture(
     stream.synchronize().ok();
 
     if let Err(e) = cuda.copy_buffer_to_texture(
-        device,
-        queue,
         &resources.buffer,
         &gpu_image.texture,
         width,
         height,
         gpu_image.texture_format,
-        TextureUses::RESOURCE,
     ) {
-        error_once!("copy_buffer_to_texture error: {:?}", e);
+        error_once!("export_texture error: {:?}", e);
     }
 }

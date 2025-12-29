@@ -8,7 +8,6 @@ use cudarc::driver::CudaContext as CudarcContext;
 use cudarc::nvrtc::Ptx;
 use std::sync::Arc;
 use wgpu::TextureFormat;
-use wgpu::TextureUses;
 
 pub struct CudaContext {
     inner: Arc<CudarcContext>,
@@ -23,9 +22,8 @@ impl CudaContext {
     pub fn new(wgpu_device: &wgpu::Device, ordinal: usize) -> Result<Self> {
         let inner = CudarcContext::new(ordinal)?;
 
-        let (vk_instance, vk_device, vk_physical_device, vk_queue, vk_queue_family_index) = unsafe {
-            extract_vulkan_handles(wgpu_device)?
-        };
+        let (vk_instance, vk_device, vk_physical_device, vk_queue, vk_queue_family_index) =
+            unsafe { extract_vulkan_handles(wgpu_device)? };
 
         Ok(Self {
             inner,
@@ -72,7 +70,7 @@ impl CudaContext {
         Ok(())
     }
 
-    pub fn as_cudarc(&self) -> &Arc<CudarcContext> {
+    pub fn into_inner(&self) -> &Arc<CudarcContext> {
         &self.inner
     }
 
@@ -89,18 +87,13 @@ impl CudaContext {
 
     pub fn copy_texture_to_buffer(
         &self,
-        _device: &wgpu::Device,
-        _queue: &wgpu::Queue,
         texture: &wgpu::Texture,
         buffer: &CudaBuffer,
         width: u32,
         height: u32,
         format: TextureFormat,
-        _usage: TextureUses,
     ) -> Result<()> {
-        let vk_buffer = buffer.as_shared().ok_or_else(|| {
-            CudaError::Platform("Buffer must be a shared buffer for texture operations".into())
-        })?;
+        let vk_buffer = buffer.as_shared();
 
         let vk_format = wgpu_format_to_vk(format)?;
         let bytes_per_pixel = format_bytes_per_pixel(vk_format);
@@ -159,7 +152,11 @@ impl CudaContext {
                     layer_count: 1,
                 },
                 image_offset: vk::Offset3D { x: 0, y: 0, z: 0 },
-                image_extent: vk::Extent3D { width, height, depth: 1 },
+                image_extent: vk::Extent3D {
+                    width,
+                    height,
+                    depth: 1,
+                },
             };
 
             self.vk_device.cmd_copy_image_to_buffer(
@@ -201,18 +198,13 @@ impl CudaContext {
 
     pub fn copy_buffer_to_texture(
         &self,
-        _device: &wgpu::Device,
-        _queue: &wgpu::Queue,
         buffer: &CudaBuffer,
         texture: &wgpu::Texture,
         width: u32,
         height: u32,
         format: TextureFormat,
-        _usage: TextureUses,
     ) -> Result<()> {
-        let vk_buffer = buffer.as_shared().ok_or_else(|| {
-            CudaError::Platform("Buffer must be a shared buffer for texture operations".into())
-        })?;
+        let vk_buffer = buffer.as_shared();
 
         let vk_format = wgpu_format_to_vk(format)?;
         let bytes_per_pixel = format_bytes_per_pixel(vk_format);
@@ -226,7 +218,9 @@ impl CudaContext {
             )));
         }
 
-        self.inner.default_stream().synchronize()
+        self.inner
+            .default_stream()
+            .synchronize()
             .map_err(|e| CudaError::Platform(format!("CUDA sync failed: {:?}", e)))?;
 
         unsafe {
@@ -293,7 +287,11 @@ impl CudaContext {
                     layer_count: 1,
                 },
                 image_offset: vk::Offset3D { x: 0, y: 0, z: 0 },
-                image_extent: vk::Extent3D { width, height, depth: 1 },
+                image_extent: vk::Extent3D {
+                    width,
+                    height,
+                    depth: 1,
+                },
             };
 
             self.vk_device.cmd_copy_buffer_to_image(
@@ -330,7 +328,8 @@ impl CudaContext {
             .level(vk::CommandBufferLevel::PRIMARY)
             .command_buffer_count(1);
 
-        let buffers = self.vk_device
+        let buffers = self
+            .vk_device
             .allocate_command_buffers(&alloc_info)
             .map_err(CudaError::Vulkan)?;
 
@@ -348,13 +347,13 @@ impl CudaContext {
 
     unsafe fn submit_and_wait(&self, cmd: vk::CommandBuffer) -> Result<()> {
         let fence_info = vk::FenceCreateInfo::default();
-        let fence = self.vk_device
+        let fence = self
+            .vk_device
             .create_fence(&fence_info, None)
             .map_err(CudaError::Vulkan)?;
 
         let cmd_buffers = [cmd];
-        let submit_info = vk::SubmitInfo::default()
-            .command_buffers(&cmd_buffers);
+        let submit_info = vk::SubmitInfo::default().command_buffers(&cmd_buffers);
 
         self.vk_device
             .queue_submit(self.vk_queue, &[submit_info], fence)
@@ -383,10 +382,16 @@ unsafe fn extract_vulkan_handles(
     let vk_device = hal_device.raw_device().clone();
     let physical_device = hal_device.raw_physical_device();
 
-    let queue_family_index = 0u32;
+    let queue_family_index = 0u32; //
     let queue = vk_device.get_device_queue(queue_family_index, 0);
 
-    Ok((instance, vk_device, physical_device, queue, queue_family_index))
+    Ok((
+        instance,
+        vk_device,
+        physical_device,
+        queue,
+        queue_family_index,
+    ))
 }
 
 unsafe fn get_vk_image_from_wgpu(texture: &wgpu::Texture) -> Result<vk::Image> {
@@ -432,24 +437,50 @@ fn wgpu_format_to_vk(format: TextureFormat) -> Result<vk::Format> {
         TextureFormat::Rgba32Uint => vk::Format::R32G32B32A32_UINT,
         TextureFormat::Rgba32Sint => vk::Format::R32G32B32A32_SINT,
         TextureFormat::Rgba32Float => vk::Format::R32G32B32A32_SFLOAT,
-        _ => return Err(CudaError::Platform(format!("Unsupported texture format: {:?}", format))),
+        _ => {
+            return Err(CudaError::Platform(format!(
+                "Unsupported texture format: {:?}",
+                format
+            )))
+        }
     };
     Ok(vk_format)
 }
 
 fn format_bytes_per_pixel(format: vk::Format) -> u32 {
     match format {
-        vk::Format::R8_UNORM | vk::Format::R8_SNORM | vk::Format::R8_UINT | vk::Format::R8_SINT => 1,
-        vk::Format::R8G8_UNORM | vk::Format::R8G8_SNORM | vk::Format::R8G8_UINT | vk::Format::R8G8_SINT
-        | vk::Format::R16_UINT | vk::Format::R16_SINT | vk::Format::R16_SFLOAT => 2,
-        vk::Format::R8G8B8A8_UNORM | vk::Format::R8G8B8A8_SRGB | vk::Format::R8G8B8A8_SNORM
-        | vk::Format::R8G8B8A8_UINT | vk::Format::R8G8B8A8_SINT
-        | vk::Format::B8G8R8A8_UNORM | vk::Format::B8G8R8A8_SRGB
-        | vk::Format::R16G16_UINT | vk::Format::R16G16_SINT | vk::Format::R16G16_SFLOAT
-        | vk::Format::R32_UINT | vk::Format::R32_SINT | vk::Format::R32_SFLOAT => 4,
-        vk::Format::R16G16B16A16_UINT | vk::Format::R16G16B16A16_SINT | vk::Format::R16G16B16A16_SFLOAT
-        | vk::Format::R32G32_UINT | vk::Format::R32G32_SINT | vk::Format::R32G32_SFLOAT => 8,
-        vk::Format::R32G32B32A32_UINT | vk::Format::R32G32B32A32_SINT | vk::Format::R32G32B32A32_SFLOAT => 16,
+        vk::Format::R8_UNORM | vk::Format::R8_SNORM | vk::Format::R8_UINT | vk::Format::R8_SINT => {
+            1
+        }
+        vk::Format::R8G8_UNORM
+        | vk::Format::R8G8_SNORM
+        | vk::Format::R8G8_UINT
+        | vk::Format::R8G8_SINT
+        | vk::Format::R16_UINT
+        | vk::Format::R16_SINT
+        | vk::Format::R16_SFLOAT => 2,
+        vk::Format::R8G8B8A8_UNORM
+        | vk::Format::R8G8B8A8_SRGB
+        | vk::Format::R8G8B8A8_SNORM
+        | vk::Format::R8G8B8A8_UINT
+        | vk::Format::R8G8B8A8_SINT
+        | vk::Format::B8G8R8A8_UNORM
+        | vk::Format::B8G8R8A8_SRGB
+        | vk::Format::R16G16_UINT
+        | vk::Format::R16G16_SINT
+        | vk::Format::R16G16_SFLOAT
+        | vk::Format::R32_UINT
+        | vk::Format::R32_SINT
+        | vk::Format::R32_SFLOAT => 4,
+        vk::Format::R16G16B16A16_UINT
+        | vk::Format::R16G16B16A16_SINT
+        | vk::Format::R16G16B16A16_SFLOAT
+        | vk::Format::R32G32_UINT
+        | vk::Format::R32G32_SINT
+        | vk::Format::R32G32_SFLOAT => 8,
+        vk::Format::R32G32B32A32_UINT
+        | vk::Format::R32G32B32A32_SINT
+        | vk::Format::R32G32B32A32_SFLOAT => 16,
         _ => 4,
     }
 }

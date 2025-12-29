@@ -17,7 +17,7 @@ impl CudaModule {
         Ok(CudaFunction { inner: func })
     }
 
-    pub fn as_cudarc(&self) -> &Arc<CudarcModule> {
+    pub fn into_inner(&self) -> &Arc<CudarcModule> {
         &self.inner
     }
 }
@@ -35,7 +35,7 @@ pub struct CudaFunction {
 }
 
 impl CudaFunction {
-    pub fn as_cudarc(&self) -> &CudarcFunction {
+    pub fn into_inner(&self) -> &CudarcFunction {
         &self.inner
     }
 }

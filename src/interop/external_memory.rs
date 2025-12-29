@@ -9,6 +9,7 @@ use std::os::windows::io::RawHandle;
 
 pub struct ExternalMemory {
     handle: CUexternalMemory,
+    #[allow(dead_code)]
     size: u64,
     ctx: Arc<CudaContext>,
 }
@@ -44,10 +45,6 @@ impl ExternalMemory {
         })
     }
 
-    pub fn size(&self) -> u64 {
-        self.size
-    }
-
     pub fn map_all(&self) -> Result<MappedBuffer, DriverError> {
         self.map_range(0..self.size as usize)
     }
@@ -64,7 +61,6 @@ impl ExternalMemory {
 
         Ok(MappedBuffer {
             device_ptr,
-            len: range.len(),
             ctx: self.ctx.clone(),
         })
     }
@@ -81,21 +77,12 @@ impl Drop for ExternalMemory {
 
 pub struct MappedBuffer {
     device_ptr: CUdeviceptr,
-    len: usize,
     ctx: Arc<CudaContext>,
 }
 
 impl MappedBuffer {
-    pub fn ptr(&self) -> CUdeviceptr {
+    pub fn device_ptr(&self) -> CUdeviceptr {
         self.device_ptr
-    }
-
-    pub fn len(&self) -> usize {
-        self.len
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len == 0
     }
 }
 

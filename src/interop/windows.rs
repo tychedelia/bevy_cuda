@@ -77,8 +77,8 @@ impl VkCudaBuffer {
         })
     }
 
-    pub fn ptr(&self) -> CUdeviceptr {
-        self.mapped_buffer.ptr()
+    pub fn device_ptr(&self) -> CUdeviceptr {
+        self.mapped_buffer.device_ptr()
     }
 
     pub fn vk_buffer(&self) -> vk::Buffer {
