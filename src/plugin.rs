@@ -4,14 +4,9 @@ use bevy::render::RenderApp;
 
 use crate::CudaContext;
 
+#[derive(Default)]
 pub struct CudaPlugin {
     pub ordinal: usize,
-}
-
-impl Default for CudaPlugin {
-    fn default() -> Self {
-        Self { ordinal: 0 }
-    }
 }
 
 impl Plugin for CudaPlugin {
