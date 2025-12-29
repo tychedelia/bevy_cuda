@@ -1,6 +1,6 @@
 use cudarc::driver::result::external_memory as cuda_ext;
 use cudarc::driver::sys::{CUdeviceptr, CUexternalMemory};
-use cudarc::driver::{DriverError, CudaContext};
+use cudarc::driver::{CudaContext, DriverError};
 use std::ops::Range;
 use std::sync::Arc;
 

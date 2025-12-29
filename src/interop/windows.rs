@@ -57,7 +57,8 @@ impl VkCudaBuffer {
             .memory(vk_memory)
             .handle_type(vk::ExternalMemoryHandleTypeFlags::OPAQUE_WIN32);
 
-        let handle: RawHandle = unsafe { ext_mem_win32.get_memory_win32_handle(&handle_info)? as RawHandle };
+        let handle: RawHandle =
+            unsafe { ext_mem_win32.get_memory_win32_handle(&handle_info)? as RawHandle };
 
         let external_memory =
             unsafe { ExternalMemory::import_win32(cuda_ctx, handle, mem_reqs.size) }
@@ -107,8 +108,7 @@ fn find_memory_type_for_external(
     physical_device: vk::PhysicalDevice,
     type_filter: u32,
 ) -> Result<u32> {
-    let mem_properties =
-        unsafe { instance.get_physical_device_memory_properties(physical_device) };
+    let mem_properties = unsafe { instance.get_physical_device_memory_properties(physical_device) };
 
     for i in 0..mem_properties.memory_type_count {
         let memory_type = mem_properties.memory_types[i as usize];

@@ -59,9 +59,8 @@ impl VkCudaBuffer {
 
         let fd: RawFd = unsafe { ext_mem_fd.get_memory_fd(&handle_info)? };
 
-        let external_memory =
-            unsafe { ExternalMemory::import_fd(cuda_ctx, fd, mem_reqs.size) }
-                .map_err(|e| CudaError::Platform(format!("CUDA import failed: {:?}", e)))?;
+        let external_memory = unsafe { ExternalMemory::import_fd(cuda_ctx, fd, mem_reqs.size) }
+            .map_err(|e| CudaError::Platform(format!("CUDA import failed: {:?}", e)))?;
 
         let mapped_buffer = external_memory
             .map_all()
@@ -107,8 +106,7 @@ fn find_memory_type_for_external(
     physical_device: vk::PhysicalDevice,
     type_filter: u32,
 ) -> Result<u32> {
-    let mem_properties =
-        unsafe { instance.get_physical_device_memory_properties(physical_device) };
+    let mem_properties = unsafe { instance.get_physical_device_memory_properties(physical_device) };
 
     for i in 0..mem_properties.memory_type_count {
         let memory_type = mem_properties.memory_types[i as usize];

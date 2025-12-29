@@ -37,9 +37,10 @@ pub fn read_cuda_array_interface(obj: &Bound<'_, PyAny>) -> PyResult<CudaArrayIn
         .ok_or_else(|| PyErr::new::<pyo3::exceptions::PyKeyError, _>("missing 'version'"))?
         .extract()?;
     if version < 2 {
-        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-            format!("__cuda_array_interface__ version {} not supported (need >= 2)", version)
-        ));
+        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+            "__cuda_array_interface__ version {} not supported (need >= 2)",
+            version
+        )));
     }
 
     let data = dict

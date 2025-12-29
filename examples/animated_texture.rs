@@ -4,7 +4,9 @@ use bevy::render::render_asset::RenderAssets;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat, TextureUsages};
 use bevy::render::texture::GpuImage;
 use bevy::render::{Render, RenderApp, RenderStartup, RenderSystems};
-use bevy_cuda::{compile_ptx, CudaBuffer, CudaContext, CudaModule, CudaPlugin, LaunchConfig, PushKernelArg};
+use bevy_cuda::{
+    compile_ptx, CudaBuffer, CudaContext, CudaModule, CudaPlugin, LaunchConfig, PushKernelArg,
+};
 use std::sync::Arc;
 
 const ANIMATE_KERNEL: &str = r#"
@@ -163,10 +165,14 @@ fn cuda_animate_texture(
     resources: Option<Res<CudaResources>>,
     gpu_images: Res<RenderAssets<GpuImage>>,
 ) {
-    let Some(cuda_texture) = cuda_texture else { return };
+    let Some(cuda_texture) = cuda_texture else {
+        return;
+    };
     let Some(anim_time) = anim_time else { return };
     let Some(resources) = resources else { return };
-    let Some(gpu_image) = gpu_images.get(&cuda_texture.0) else { return };
+    let Some(gpu_image) = gpu_images.get(&cuda_texture.0) else {
+        return;
+    };
 
     let width = gpu_image.size.width;
     let height = gpu_image.size.height;
