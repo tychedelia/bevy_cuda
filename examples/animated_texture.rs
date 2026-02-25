@@ -107,7 +107,7 @@ fn setup(
     commands.spawn((
         PointLight {
             intensity: 2_000_000.0,
-            shadows_enabled: true,
+            shadow_maps_enabled: true,
             ..default()
         },
         Transform::from_xyz(4.0, 8.0, 4.0),
@@ -174,8 +174,8 @@ fn cuda_animate_texture(
         return;
     };
 
-    let width = gpu_image.size.width;
-    let height = gpu_image.size.height;
+    let width = gpu_image.texture_descriptor.size.width;
+    let height = gpu_image.texture_descriptor.size.height;
 
     let func = match resources.module.get_function("animate_colors") {
         Ok(f) => f,
@@ -217,7 +217,7 @@ fn cuda_animate_texture(
         &gpu_image.texture,
         width,
         height,
-        gpu_image.texture_format,
+        gpu_image.texture_descriptor.format,
     ) {
         error_once!("export_texture error: {:?}", e);
     }

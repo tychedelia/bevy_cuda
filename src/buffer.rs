@@ -2,6 +2,7 @@ use crate::interop::VkCudaBuffer;
 use cudarc::driver::sys::CUdeviceptr;
 
 // A buffer that is available from both Cuda and Vulkan contexts
+#[derive(bevy::prelude::Resource)]
 pub struct CudaBuffer {
     inner: VkCudaBuffer,
 }
@@ -24,4 +25,3 @@ impl CudaBuffer {
     }
 }
 
-impl bevy::prelude::Resource for CudaBuffer {}

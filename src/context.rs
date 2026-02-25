@@ -9,6 +9,7 @@ use cudarc::nvrtc::Ptx;
 use std::sync::Arc;
 use wgpu::TextureFormat;
 
+#[derive(bevy::prelude::Resource)]
 pub struct CudaContext {
     inner: Arc<CudarcContext>,
     vk_instance: Instance,
@@ -369,7 +370,6 @@ impl CudaContext {
     }
 }
 
-impl bevy::prelude::Resource for CudaContext {}
 
 unsafe fn extract_vulkan_handles(
     wgpu_device: &wgpu::Device,
