@@ -22,11 +22,8 @@ impl CudaBuffer {
     /// Copy data from an arbitrary CUDA device pointer into this buffer.
     pub fn copy_from_device_ptr(&self, src: u64, size: u64) -> crate::error::Result<()> {
         unsafe {
-            let result = cudarc::driver::sys::cuMemcpyDtoD_v2(
-                self.inner.device_ptr(),
-                src,
-                size as usize,
-            );
+            let result =
+                cudarc::driver::sys::cuMemcpyDtoD_v2(self.inner.device_ptr(), src, size as usize);
             if result != cudarc::driver::sys::CUresult::CUDA_SUCCESS {
                 return Err(crate::error::CudaError::Driver(
                     cudarc::driver::DriverError(result),
@@ -40,4 +37,3 @@ impl CudaBuffer {
         &self.inner
     }
 }
-

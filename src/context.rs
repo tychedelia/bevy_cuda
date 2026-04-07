@@ -370,7 +370,6 @@ impl CudaContext {
     }
 }
 
-
 unsafe fn extract_vulkan_handles(
     wgpu_device: &wgpu::Device,
 ) -> Result<(Instance, Device, vk::PhysicalDevice, vk::Queue, u32)> {

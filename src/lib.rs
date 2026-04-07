@@ -54,10 +54,7 @@ impl Plugin for CudaPlugin {
         }
 
         if self.ordinal >= Self::cuda_device_count().unwrap_or(0) as usize {
-            error!(
-                "CudaPlugin: Device ordinal {} out of range",
-                self.ordinal
-            );
+            error!("CudaPlugin: Device ordinal {} out of range", self.ordinal);
         }
     }
 
@@ -72,11 +69,7 @@ impl Plugin for CudaPlugin {
         let render_device = render_app.world().resource::<RenderDevice>();
         let wgpu_device = render_device.wgpu_device();
 
-        let is_vulkan = unsafe {
-            wgpu_device
-                .as_hal::<wgpu_hal::api::Vulkan>()
-                .is_some()
-        };
+        let is_vulkan = unsafe { wgpu_device.as_hal::<wgpu_hal::api::Vulkan>().is_some() };
 
         if !is_vulkan {
             error!("CudaPlugin: Vulkan backend required for CUDA interop");
