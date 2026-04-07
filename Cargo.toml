@@ -36,8 +36,8 @@ cuda-13010 = ["cudarc/cuda-13010"]
 [dependencies]
 bevy = { git = "https://github.com/bevyengine/bevy", branch = "main" }
 # Use the same wgpu versions as bevy main
-wgpu = "28"
-wgpu-hal = "28"
+wgpu = "29"
+wgpu-hal = "29"
 ash = "0.38"
 cudarc = { version = "0.18", default-features = false, features = ["std", "driver", "nvrtc", "dynamic-loading"] }
 thiserror = "2"
