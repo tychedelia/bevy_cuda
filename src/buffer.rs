@@ -1,5 +1,4 @@
 use crate::interop::VkCudaBuffer;
-use cudarc::driver::sys::CUdeviceptr;
 
 // A buffer that is available from both Cuda and Vulkan contexts
 #[derive(bevy::prelude::Resource)]
@@ -12,7 +11,7 @@ impl CudaBuffer {
         Self { inner: vk_buffer }
     }
 
-    pub fn device_ptr(&self) -> CUdeviceptr {
+    pub fn device_ptr(&self) -> u64 {
         self.inner.device_ptr()
     }
 
